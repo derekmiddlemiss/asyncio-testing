@@ -1,6 +1,5 @@
 import pytest
 import asyncio
-import logging
 from src.shell.run_in_subprocess import run_in_subprocess
 
 

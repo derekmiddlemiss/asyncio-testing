@@ -1,13 +1,12 @@
 import asyncio
 import logging
-from typing import Tuple
-
+from typing import Tuple, Optional
 
 # Create a module-level logger
 logger = logging.getLogger(__name__)
 
 
-async def run_in_subprocess(command: str) -> Tuple[str, str, int]:
+async def run_in_subprocess(command: str) -> Tuple[str, str, Optional[int]]:
     """
     Run a command in a subprocess using asyncio.
 
@@ -21,6 +20,7 @@ async def run_in_subprocess(command: str) -> Tuple[str, str, int]:
     the process, waiting a few seconds, and then killing it if necessary.
     Also handles cancellation during process creation.
     """
+    process = None
     try:
         process = await asyncio.create_subprocess_shell(
             command,
@@ -28,32 +28,32 @@ async def run_in_subprocess(command: str) -> Tuple[str, str, int]:
             stderr=asyncio.subprocess.PIPE
         )
 
-        try:
-            stdout, stderr = await process.communicate()
-            return (
-                stdout.decode('utf-8'),
-                stderr.decode('utf-8'),
-                process.returncode
-            )
-        except asyncio.CancelledError:
-            logger.error(f"Process running command '{command}' was cancelled, attempting graceful termination")
-
-            # Try to terminate gracefully
-            process.terminate()
-
-            try:
-                # Wait for a few seconds for the process to terminate
-                await asyncio.wait_for(process.wait(), timeout=3.0)
-            except asyncio.TimeoutError:
-                logger.error(f"Process did not terminate gracefully, killing it")
-                process.kill()
-
-            # Re-raise the CancelledError to propagate it
-            raise
+        stdout, stderr = await process.communicate()
+        return (
+            stdout.decode('utf-8'),
+            stderr.decode('utf-8'),
+            process.returncode
+        )
     except asyncio.CancelledError:
-        # This handles cancellation during process creation
         logger.error(f"Process running command '{command}' was cancelled, attempting graceful termination")
-        logger.error(f"Process was cancelled before it could be created")
+
+        if process is None:
+            logger.error("Process was cancelled before it could be created")
+            raise
+
+        if process.returncode is not None:
+            logger.info(f"Process already completed with return code {process.returncode}")
+            raise
+
+        # Try to terminate gracefully
+        process.terminate()
+
+        try:
+            # Wait for a few seconds for the process to terminate
+            await asyncio.wait_for(process.wait(), timeout=3.0)
+        except asyncio.TimeoutError:
+            logger.error("Process did not terminate gracefully, killing it")
+            process.kill()
 
         # Re-raise the CancelledError to propagate it
         raise
