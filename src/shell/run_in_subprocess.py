@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 # Create a module-level logger
 logger = logging.getLogger(__name__)
@@ -23,26 +23,24 @@ async def run_in_subprocess(command: str) -> Tuple[str, str, Optional[int]]:
     process = None
     try:
         process = await asyncio.create_subprocess_shell(
-            command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
 
         stdout, stderr = await process.communicate()
-        return (
-            stdout.decode('utf-8'),
-            stderr.decode('utf-8'),
-            process.returncode
-        )
+        return (stdout.decode("utf-8"), stderr.decode("utf-8"), process.returncode)
     except asyncio.CancelledError:
-        logger.error(f"Process running command '{command}' was cancelled, attempting graceful termination")
+        logger.error(
+            f"Process running command '{command}' was cancelled, attempting graceful termination"
+        )
 
         if process is None:
             logger.error("Process was cancelled before it could be created")
             raise
 
         if process.returncode is not None:
-            logger.info(f"Process already completed with return code {process.returncode}")
+            logger.info(
+                f"Process already completed with return code {process.returncode}"
+            )
             raise
 
         # Try to terminate gracefully

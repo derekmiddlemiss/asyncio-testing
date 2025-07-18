@@ -12,7 +12,16 @@ dev = [
     "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
     "mypy>=1.17.0",
+    "types-all",
+    "pre-commit>=4.2.0",
+    "black>=25.1.0",
+    "flake8>=7.3.0",
+    "isort>=6.0.1",
 ]
+
+[tool.flake8]
+ignore = "E203, E266, E501, W503, F403, F401"
+exclude = ".git, .mypy_cache, .pytest_cache, build, dist"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

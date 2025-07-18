@@ -1,5 +1,7 @@
-import pytest
 import asyncio
+
+import pytest
+
 from src.shell.run_in_subprocess import run_in_subprocess
 
 
@@ -39,7 +41,7 @@ async def test_run_in_subprocess_cancellation(mocker):
     await asyncio.sleep(0.1)
 
     # Mock the logger to verify it's called
-    mock_log_error = mocker.patch('src.shell.run_in_subprocess.logger.error')
+    mock_log_error = mocker.patch("src.shell.run_in_subprocess.logger.error")
 
     # Cancel the task
     task.cancel()
@@ -49,7 +51,9 @@ async def test_run_in_subprocess_cancellation(mocker):
         await task
 
     # Verify logging was called with the expected message
-    mock_log_error.assert_any_call(f"Process running command '{command}' was cancelled, attempting graceful termination")
+    mock_log_error.assert_any_call(
+        f"Process running command '{command}' was cancelled, attempting graceful termination"
+    )
 
 
 @pytest.mark.asyncio
@@ -63,16 +67,18 @@ async def test_run_in_subprocess_cancellation_during_creation(mocker):
         raise asyncio.CancelledError()
 
     # Mock the logger to verify it's called
-    mock_log_error = mocker.patch('src.shell.run_in_subprocess.logger.error')
+    mock_log_error = mocker.patch("src.shell.run_in_subprocess.logger.error")
 
     # Patch the create_subprocess_shell function to use our delayed version
-    mocker.patch('asyncio.create_subprocess_shell', delayed_create_subprocess_shell)
+    mocker.patch("asyncio.create_subprocess_shell", delayed_create_subprocess_shell)
 
     # Verify the task is cancelled
     with pytest.raises(asyncio.CancelledError):
         await run_in_subprocess(command)
 
     # Verify logging was called with the expected message
-    mock_log_error.assert_any_call(f"Process running command '{command}' was cancelled, attempting graceful termination")
+    mock_log_error.assert_any_call(
+        f"Process running command '{command}' was cancelled, attempting graceful termination"
+    )
     # We don't expect the "Process was cancelled before it could be created" message
     # because the process variable is never assigned, so the check for None is never reached
