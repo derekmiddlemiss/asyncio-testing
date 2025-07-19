@@ -12,7 +12,6 @@ dev = [
     "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
     "mypy>=1.17.0",
-    "types-all",
     "pre-commit>=4.2.0",
     "ruff>=0.3.0",
 ]
@@ -24,7 +23,7 @@ exclude = [".git", ".mypy_cache", ".pytest_cache", "build", "dist"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
-ignore = ["E203", "E266", "E501", "W503", "F403", "F401"]
+ignore = ["E203", "E266", "E501", "F403", "F401"]
 
 [tool.ruff.format]
 quote-style = "double"

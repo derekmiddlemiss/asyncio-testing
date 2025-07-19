@@ -82,3 +82,70 @@ async def test_run_in_subprocess_cancellation_during_creation(mocker):
     )
     # We don't expect the "Process was cancelled before it could be created" message
     # because the process variable is never assigned, so the check for None is never reached
+
+
+@pytest.mark.asyncio
+async def test_run_in_subprocess_cancellation_already_completed(mocker):
+    """Test that run_in_subprocess correctly handles task cancellation when process already completed."""
+    command = "echo 'This will complete quickly'"
+
+    # Create a mock process with a returncode
+    mock_process = mocker.AsyncMock()
+    mock_process.returncode = 0
+
+    # Mock the create_subprocess_shell to return our mock process
+    mocker.patch("asyncio.create_subprocess_shell", return_value=mock_process)
+
+    # Mock the communicate method to raise CancelledError
+    mock_process.communicate.side_effect = asyncio.CancelledError()
+
+    # Mock the logger to verify it's called
+    mock_log_info = mocker.patch("src.shell.run_in_subprocess.logger.info")
+
+    # Verify the task is cancelled
+    with pytest.raises(asyncio.CancelledError):
+        await run_in_subprocess(command)
+
+    # Verify logging was called with the expected message
+    mock_log_info.assert_called_once_with(
+        f"Process already completed with return code {mock_process.returncode}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_in_subprocess_cancellation_timeout(mocker):
+    """Test that run_in_subprocess correctly handles task cancellation when process doesn't terminate gracefully."""
+    command = "while true; do sleep 1; done"
+
+    # Create a mock process
+    mock_process = mocker.AsyncMock()
+    mock_process.returncode = None
+
+    # Set up terminate and kill methods to return completed futures
+    mock_process.terminate.return_value = asyncio.Future()
+    mock_process.terminate.return_value.set_result(None)
+    mock_process.kill.return_value = asyncio.Future()
+    mock_process.kill.return_value.set_result(None)
+
+    # Mock the create_subprocess_shell to return our mock process
+    mocker.patch("asyncio.create_subprocess_shell", return_value=mock_process)
+
+    # Mock the communicate method to raise CancelledError
+    mock_process.communicate.side_effect = asyncio.CancelledError()
+
+    # Mock the wait_for function to raise TimeoutError
+    mocker.patch("asyncio.wait_for", side_effect=asyncio.TimeoutError())
+
+    # Mock the logger to verify it's called
+    mock_log_error = mocker.patch("src.shell.run_in_subprocess.logger.error")
+
+    # Verify the task is cancelled
+    with pytest.raises(asyncio.CancelledError):
+        await run_in_subprocess(command)
+
+    # Verify the process was terminated and then killed
+    mock_process.terminate.assert_called_once()
+    mock_process.kill.assert_called_once()
+
+    # Verify logging was called with the expected message
+    mock_log_error.assert_any_call("Process did not terminate gracefully, killing it")
