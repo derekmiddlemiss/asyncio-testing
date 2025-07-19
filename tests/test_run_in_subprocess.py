@@ -121,11 +121,10 @@ async def test_run_in_subprocess_cancellation_timeout(mocker):
     mock_process = mocker.AsyncMock()
     mock_process.returncode = None
 
-    # Set up terminate and kill methods to return completed futures
-    mock_process.terminate.return_value = asyncio.Future()
-    mock_process.terminate.return_value.set_result(None)
-    mock_process.kill.return_value = asyncio.Future()
-    mock_process.kill.return_value.set_result(None)
+    # Configure terminate and kill to be synchronous methods (not coroutines)
+    # This matches the actual behavior of Process.terminate() and Process.kill()
+    mock_process.terminate = mocker.Mock()
+    mock_process.kill = mocker.Mock()
 
     # Mock the create_subprocess_shell to return our mock process
     mocker.patch("asyncio.create_subprocess_shell", return_value=mock_process)
