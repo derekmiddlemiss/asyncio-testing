@@ -2,7 +2,6 @@ import asyncio
 import logging
 from typing import Optional, Tuple
 
-# Create a module-level logger
 logger = logging.getLogger(__name__)
 
 
@@ -30,10 +29,10 @@ async def run_in_subprocess(
         )
 
         stdout, stderr = await process.communicate()
-        # Handle potential decoding errors gracefully
         stdout_str = stdout.decode("utf-8", errors="replace")
         stderr_str = stderr.decode("utf-8", errors="replace")
         return stdout_str, stderr_str, process.returncode
+
     except asyncio.CancelledError:
         logger.error(
             f"Process running command '{command}' was cancelled, attempting graceful termination"
@@ -49,15 +48,11 @@ async def run_in_subprocess(
             )
             raise
 
-        # Try to terminate gracefully
         process.terminate()
-
         try:
-            # Wait for the specified timeout for the process to terminate
             await asyncio.wait_for(process.wait(), timeout=termination_timeout)
         except asyncio.TimeoutError:
             logger.error("Process did not terminate gracefully, killing it")
             process.kill()
 
-        # Re-raise the CancelledError to propagate it
         raise
