@@ -6,18 +6,21 @@ from typing import Optional, Tuple
 logger = logging.getLogger(__name__)
 
 
-async def run_in_subprocess(command: str) -> Tuple[str, str, Optional[int]]:
+async def run_in_subprocess(
+    command: str, termination_timeout: float = 3.0
+) -> Tuple[str, str, Optional[int]]:
     """
     Run a command in a subprocess using asyncio.
 
     Args:
         command: The shell command to execute
+        termination_timeout: Timeout in seconds to wait for process termination after cancellation
 
     Returns:
         A tuple containing (stdout, stderr, exit_code)
 
     Handles asyncio.CancelledError by attempting to gracefully terminate
-    the process, waiting a few seconds, and then killing it if necessary.
+    the process, waiting for termination_timeout seconds, and then killing it if necessary.
     Also handles cancellation during process creation.
     """
     process = None
@@ -27,7 +30,10 @@ async def run_in_subprocess(command: str) -> Tuple[str, str, Optional[int]]:
         )
 
         stdout, stderr = await process.communicate()
-        return (stdout.decode("utf-8"), stderr.decode("utf-8"), process.returncode)
+        # Handle potential decoding errors gracefully
+        stdout_str = stdout.decode("utf-8", errors="replace")
+        stderr_str = stderr.decode("utf-8", errors="replace")
+        return stdout_str, stderr_str, process.returncode
     except asyncio.CancelledError:
         logger.error(
             f"Process running command '{command}' was cancelled, attempting graceful termination"
@@ -47,8 +53,8 @@ async def run_in_subprocess(command: str) -> Tuple[str, str, Optional[int]]:
         process.terminate()
 
         try:
-            # Wait for a few seconds for the process to terminate
-            await asyncio.wait_for(process.wait(), timeout=3.0)
+            # Wait for the specified timeout for the process to terminate
+            await asyncio.wait_for(process.wait(), timeout=termination_timeout)
         except asyncio.TimeoutError:
             logger.error("Process did not terminate gracefully, killing it")
             process.kill()
