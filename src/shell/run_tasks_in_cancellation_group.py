@@ -17,7 +17,7 @@ async def run_tasks_in_cancellation_group(tasks: List[asyncio.Task]) -> None:
 
 async def run_tasks_in_cancellation_group_with_results(
     tasks: List[asyncio.Task[T]],
-) -> List[Union[T, BaseException]]:
+) -> Union[List[T], List[Union[T, BaseException]]]:
     """
     Run a list of tasks and return their results.
     If any task raises an exception, all remaining tasks are cancelled,
@@ -33,9 +33,7 @@ async def run_tasks_in_cancellation_group_with_results(
         Exception: If any task raises an exception, it is re-raised after cancelling all other tasks
     """
     try:
-        results: List[Union[T, BaseException]] = await asyncio.gather(
-            *tasks, return_exceptions=False
-        )
+        results = await asyncio.gather(*tasks, return_exceptions=False)
         return results
     except Exception:
         for task in tasks:
@@ -43,7 +41,5 @@ async def run_tasks_in_cancellation_group_with_results(
                 task.cancel()
         # We need return_exceptions=True here to prevent CancelledError from being raised
         # when we're trying to clean up after another exception
-        exc_results: List[Union[T, BaseException]] = await asyncio.gather(
-            *tasks, return_exceptions=True
-        )
+        exc_results = await asyncio.gather(*tasks, return_exceptions=True)
         return exc_results

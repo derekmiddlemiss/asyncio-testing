@@ -1,7 +1,5 @@
 import asyncio
 from collections import Counter
-from itertools import count
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -176,11 +174,11 @@ async def test_run_tasks_in_cancellation_group_with_results_error():
     """Test that run_tasks_in_cancellation_group_with_results handles errors correctly."""
 
     # Create tasks, one of which will fail
-    async def successful_task():
+    async def successful_task() -> str:
         await asyncio.sleep(0.1)
         return "success"
 
-    async def failing_task():
+    async def failing_task() -> None:
         await asyncio.sleep(0.1)
         raise ValueError("Task failed")
 
